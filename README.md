@@ -1,44 +1,42 @@
 # Skills
 
-把可复用的工作方法整理成 Agent Skills，让 AI 按明确规则处理任务，而不是每次从头解释要求。
+把可复用的工作方法整理成 Agent Skills，让 AI 按明确边界处理任务，并说明做了什么、哪些还需要确认。
 
-- **少重复交代规则**：每个 Skill 独立存放，包含入口说明、参考资料和必要脚本。
-- **知识库文档少被切碎**：按内容关系处理空行和标题，而不是只做视觉美化。
-- **不同文档分别处理**：故障分析按检索问题重组；手册、方案保留原内容结构。
-- **提交前先检查**：用只读脚本定位多块、碎块、超长块和表格引导句，再人工复核。
+- **少重复交代规则**：每个 Skill 独立包含入口说明、参考资料和必要脚本。
+- **整理知识库文档时保留原意**：先判断文档类型和分段配置，不以“删空行、少分块”为唯一目标。
+- **不同内容分别处理**：手册保持原顺序，问题分析按证据重组，混合文档按章节分流。
+- **结果可以复核**：代码、命令、数字等默认保护；另存正文，给出修改摘要和待确认项，检查结果按严重程度区分。
 
 ## 先看一个结果
 
-当前收录：[知识库文档编写规范](<knowledge-base-doc-authoring/SKILL.md>)（`knowledge-base-doc-authoring`）。
+当前收录：[知识库文档整理](<knowledge-base-doc-authoring/SKILL.md>)（`knowledge-base-doc-authoring`）。
 
-给 AI 的示例请求：
+示例请求：
 
-> 用 knowledge-base-doc-authoring 整理这份操作手册，保留内容和章节顺序，只调整换行与从属小标题。另存 Markdown，并检查哪些内容可能被拆成碎块。
+> 用 knowledge-base-doc-authoring 整理这份操作手册。只调格式，保留代码、命令、数字和章节顺序；目标按空行分段，上限 2048 字符。另存文档，并列出修改和待确认事项。
 
-仓库内的[合规示例](<examples/compliant.md>)实际检查结果摘要：
+**示意交付，不是某份真实业务文档的处理结果：**
 
 ```text
-Document 数（标题数）: 1
-块数: 1
-块数 - 标题数: 0（应为 0）
-最长块: 210 字符
-排版检查通过。
+整理正文：手册-kb.md，原文未覆盖。
+修改摘要：合并同一操作模块的无意义空行；代码内部空行未改。
+待确认：一张比较表可能独立分段，保留表格，等待平台预览确认。
 ```
 
-[分块反例](<examples/fragmented.md>)在同一个标题下插入空行，会报告 2 个块以及第 3 行的内部空行。
+检查器只负责只读结构提示；文档分类、语义关系和事实保真由 AI/人工复核，不能仅凭脚本返回 `0` 就声称检索效果已提升。
 
 ## 三步快速上手
 
-以下为 Windows PowerShell 示例。这里安装的是 Skill 文件，不是 DSH 插件，不使用 `dsh plugin add`。
+以下为 Windows PowerShell 示例。这是 Skill 文件，不是 DSH 插件，不使用 `dsh plugin add`，不需要按插件安装流程退出桌面端。
 
-1. **下载仓库到本地。** 在你准备存放代码的目录执行：
+1. **下载仓库。** 在准备存放代码的目录执行：
 
    ```powershell
    git clone https://github.com/hzopc1031/skills.git
    Set-Location skills
    ```
 
-2. **复制要使用的 Skill。** 本机 DSH 的用户级技能目录为 `$env:USERPROFILE\.dsh\skills`。下面的命令遇到同名目录会停止，避免覆盖已有修改：
+2. **复制要用的 Skill。** 本机 DSH 已核对的用户级目录为 `$env:USERPROFILE\.dsh\skills`。遇到同名目录先比较并备份，不要直接覆盖已有修改：
 
    ```powershell
    $target = Join-Path $env:USERPROFILE '.dsh\skills\knowledge-base-doc-authoring'
@@ -47,61 +45,79 @@ Document 数（标题数）: 1
    Copy-Item -LiteralPath '.\knowledge-base-doc-authoring' -Destination $target -Recurse
    ```
 
-   其他支持 Skill 目录的工具，应按各自文档选择安装位置；不承诺所有工具使用同一路径。
+   其他支持 Skill 的工具按各自文档选择安装位置；不承诺所有宿主都使用这个路径。
 
-3. **新开会话，得到第一份结果。** 确认技能列表出现 `knowledge-base-doc-authoring`，再提交上面的示例请求及待处理文档。如果工具未重新扫描技能，重启该工具后再试。需要独立验证示例时，安装 Python 3.10 或更新版本，并在仓库根目录执行：
+3. **新开会话得到第一份结果。** 确认技能列表出现 `knowledge-base-doc-authoring`，提交上面的请求及待处理文档。未重新扫描时重启所用工具。独立运行检查器需要 Python 3.10 或更新版本，可在仓库根目录验证[示例文档](<examples/compliant.md>)：
 
    ```powershell
    python knowledge-base-doc-authoring/scripts/check_doc.py examples/compliant.md
    ```
 
-   成功时会显示一个标题、一个块，以及“排版检查通过”。没有 Python 时仍可阅读规范或让 AI 按规范整理，但不能执行此自检脚本。
+   没有 Python 仍可按规范整理，但不能执行自检脚本；未确认实际分段配置时，不要把脚本默认值当成平台设置。
 
-## 日常使用
+## 按任务使用
 
-### 整理手册、方案、规范
+### 整理通用、问题分析或混合文档
 
-保留原文内容和章节顺序，只处理同一主题内部的空行及从属标题；步骤、注意事项和配图说明尽量保持在同一语义块中。不要为了减少块数合并不同主题。
+- **手册、方案、规范**：保持内容和顺序，只处理必要格式；表格、独立标题和段落空行不一律删除。
+- **故障说明、根因分析**：读取[问题分析参考](<knowledge-base-doc-authoring/references/fault-analysis.md>)。允许的重组以证据为准，不强填六章，不制造矛盾，不把假设改成根因。
+- **混合文档**：按章节分类，记录原章节与输出位置；不确定部分保守保留。
 
-### 整理故障分析、根因说明、排查指南
+默认另存整理正文，并提供[修改摘要与待确认报告](<knowledge-base-doc-authoring/references/report-template.md>)。代码、命令、日志、参数、数字与单位、版本、路径及限定条件需要保真核对。检查器目前不对比原文，也不执行 Word/PDF 转换。
 
-按[故障分析参考规范](<knowledge-base-doc-authoring/references/fault-analysis.md>)组织：结论与适用前提、现象、根因、判断与自查、解决方案、预防。判断与预防可选；未知事实应向用户核实，不能为了填满结构而编造证据。
-
-### 检查待入库 Markdown
+### 按目标配置检查
 
 ```powershell
-python knowledge-base-doc-authoring/scripts/check_doc.py "待入库文档.md" 2048
+python knowledge-base-doc-authoring/scripts/check_doc.py "文档-kb.md" --split-mode blank-lines --max-chars 2048 --min-chars 60
+python knowledge-base-doc-authoring/scripts/check_doc.py "文档-kb.md" --split-mode headings --format json
 ```
 
-- `2048` 是可选的单块字符上限，默认也是 `2048`，不是 token 数。
-- 退出码 `0` 表示检查通过；`1` 表示需要处理或人工复核；`2` 表示参数、文件或编码错误。
-- 检查器只读本地文档，不自动改写、上传 Dify、执行修复命令或发布内容。
-- 表格造成的多块、三级标题是否保留，需要结合文档类型人工判断。
+- `blank-lines`：标题与代码区域外的空行触发近似分块；默认采用这个探索模型，不表示已确认 Dify 的真实配置。
+- `headings`：近似只按标题分块，保留章节内段落空行。
+- `--max-chars` 默认 `2048`，`--min-chars` 默认 `60`，都以字符而非 token 计数。旧式位置参数 `文档.md 2048` 仍可用，不能与显式 `--max-chars` 同时使用。
+- 常见反引号/波浪线围栏和缩进代码受到扫描保护，代码内标题与空行不当作普通分隔点；这不保证目标知识库也这样处理。
+- JSON 包含模型、参数、摘要和问题行号，不含正文；标题与文件名仍可能敏感，不默认公开业务报告。
 
-### 以后增加新的 Skill
+### 理解检查级别与退出码
 
-在仓库根目录新增一个以 Skill 名命名的目录，至少包含 `SKILL.md`，并在其中写明名称、触发场景和执行规则。参考资料放在该目录的 `references/`，脚本放在 `scripts/`；不要提交账号凭据、私人文档或本机配置。
+- **error 错误**：空文档、超过配置长度上限、未闭合围栏等。
+- **warning 警告**：短块、一个标题下多块、无标题内容、可疑表格引导句等。需要人工判断，不直接要求删空行或改表格。
+- **info 信息**：连续空行等结构观察，不等于内容有误。
+
+退出码 `0` 表示没有 error，仍可能有 warning；`1` 表示有 error，或启用了 `--strict` 且有 warning；`2` 表示参数、文件或编码错误。严格门禁示例：
+
+```powershell
+python knowledge-base-doc-authoring/scripts/check_doc.py examples/fragmented.md --strict
+```
+
+[多块提示示例](<examples/fragmented.md>)在默认空行模型下会产生 warning；默认返回 `0`，严格门禁返回 `1`。这只是模型相关提示，不代表所有多段落文档都不合格。
+
+### 验证实际检索
+
+在获得平台和文档上传授权后，检查真实分段预览，选 3–5 个由原文可回答的问题，比较整理前后是否找到正确对象、完整前提和可用答案。没有实测，只给验证计划，不编造召回率或提升百分比。
+
+### 增加其他 Skill
+
+在仓库根目录新增以 Skill 名命名的目录，至少包含 `SKILL.md`，并说明触发场景、执行边界和交付结果。参考资料放 `references/`，必要脚本放 `scripts/`；不提交私密文档、账号凭据或本机配置。
 
 ## 补充说明
 
-### 来源与复原边界
+### 来源与兼容边界
 
-首个 Skill 来自用户提供的 8 张照片：主规范 3 张、自检脚本 2 张、故障分析参考 3 张。正文以等价 Markdown 恢复；照片没有显示原始 Markdown 标记，不能保证标点和空格逐字节一致。
+首个 Skill 源于用户提供的 8 张照片，后经用户授权优化。照片复原基线与本次规则修改明确分开，入口和问题分析的旧版文本、153 行原版脚本均保留，见[来源与变更说明](<knowledge-base-doc-authoring/references/restoration-notes.md>)。未上传原始屏幕照片、本机安装备份或浏览器截图。
 
-检查器保留[照片原版脚本快照](<knowledge-base-doc-authoring/references/check_doc.photo-original.py.txt>)，运行版本修正了空输入、标题前内容丢失等边界问题，详见[复原说明](<knowledge-base-doc-authoring/references/restoration-notes.md>)。没有上传原始屏幕照片、浏览器截图或本地私密文件。
+检查器是启发式近似模型，不是完整 Markdown 解析器或 Dify 官方分块器；不模拟父子分段、分段重叠、嵌入、token 限额或真实超长硬切，不验证事故结论或遗漏事实。必要时保留合理短块、表格或多块，不为统计数字牺牲语义。
 
-### 分块模型与兼容范围
-
-“标题 + 空行”是照片规范采用的近似模型，不是对所有 Dify 版本、抽取器、父子分段、分隔符或重叠设置的保证。实际入库前，以目标知识库的分段预览和检索测试为准。脚本只标记超长块，不执行真实硬切；围栏代码内的空行仍可能被本模型拆分。
-
-通用文档的格式整理不等于事实校验；故障分析规范里的存储系统示例也不是对未知生产环境的操作建议。不要直接执行文档中的破坏性命令。
-
-### 测试
-
-使用 Python 标准库即可运行回归测试：
+### 测试与安装状态
 
 ```powershell
 python -B -m unittest discover -s tests -v
 ```
 
-当前本地验证包括 28 项单元测试，以及合规示例、分块反例、错误参数、缺失文件 4 项真实命令行检查。尚未对特定 Dify 实例进行上传或检索验证，也未完成所有 Skill 宿主的兼容性测试。
+当前本地 64 项回归测试全部通过，覆盖分级、参数、JSON、代码区域、标题和不可变历史快照。Windows 下还有 [15 项真实 CLI 检查](<tests/smoke_cli.ps1>)，包括输入文件哈希不变；可在仓库根目录执行：
+
+```powershell
+powershell -File tests/smoke_cli.ps1 -Python python
+```
+
+具体范围见 [变更说明](<knowledge-base-doc-authoring/references/restoration-notes.md>)。特定 Dify 实例的上传、分段与检索尚未验证；本地文件同步、技能被发现和实际任务效果是不同的验证结论。

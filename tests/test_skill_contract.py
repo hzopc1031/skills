@@ -33,7 +33,10 @@ class SkillContractTests(unittest.TestCase):
     def test_skill_name_description_and_references_are_present(self):
         entry = SKILL / "SKILL.md"
         text = entry.read_text(encoding="utf-8")
-        self.assertTrue(text.startswith("---\nname: knowledge-base-doc-authoring\ndescription: "))
+        self.assertTrue(text.startswith("---\n"))
+        frontmatter = text.split("\n---\n", 1)[0]
+        self.assertIn("\nname: knowledge-base-doc-authoring\n", f"{frontmatter}\n")
+        self.assertIn("\ndescription: ", f"{frontmatter}\n")
         self.assertIn("\n---\n", text[4:])
         for relative in (
             "references/fault-analysis.md",

@@ -1,6 +1,20 @@
 ---
 name: knowledge-base-doc-authoring
-description: 知识库（RAG）入库前的文档整理与检查。通用文档保留内容和顺序，只调整必要格式；问题分析文档按证据重组；混合文档分章节处理。先确认分段配置，保护代码、命令、数字和版本，输出整理正文、修改摘要与待确认事项。当用户提到知识库文档、Dify 分段/切块/召回、标题独立成块、文档太碎，或要把故障分析、排查指南、docx 转出的 Markdown 整理进知识库时使用。不自动上传知识库，不保证检索效果。
+display_name: 知识库文档整理专家
+display_name_en: Knowledge Base Doc Authoring Expert
+description: "知识库（RAG）入库前的文档整理与检查。通用文档保留内容和顺序，只调整必要格式；问题分析文档按证据重组；混合文档分章节处理。先确认分段配置，保护代码、命令、数字和版本，输出整理正文、修改摘要与待确认事项。当用户提到知识库文档、Dify 分段/切块/召回、标题独立成块、文档太碎，或要把故障分析、排查指南、docx 转出的 Markdown 整理进知识库时使用。不自动上传知识库，不保证检索效果。"
+description_zh: "入库前的文档整理：先判断文档类型，通用文档只调格式不改顺序，问题分析按证据重组，全程保护代码、命令、数字与版本，交付整理正文、修改摘要和待确认项。"
+description_en: "Pre-ingestion cleanup for RAG. Classify the document first, then format-only edits for manuals or evidence-based reorganization for incident analysis; code, commands and numbers are protected throughout, with a change summary and open questions."
+examples_zh:
+  - "整理这份操作手册，只调格式，代码和数字别改，另存为 -kb.md"
+  - "这份故障分析按根因分析重组，把待确认的假设单独列出来"
+  - "检查这篇 Markdown 在 2048 字符分段下有没有超长块"
+examples_en:
+  - "Clean up this manual for RAG ingestion, keep code and numbers unchanged"
+  - "Reorganize this incident analysis by evidence and list unconfirmed hypotheses"
+  - "Check this Markdown for oversized chunks under a 2048-character limit"
+version: 1.0.0
+author: "柳杨"
 ---
 
 # 知识库文档整理

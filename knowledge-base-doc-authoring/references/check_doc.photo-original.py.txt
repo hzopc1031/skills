@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+"""按 Dify 通用分段规则模拟切块，检查文档是否符合知识库排版规范。
+
+用法: python check_doc.py <markdown 文件> [分段最大长度, 默认 2048]
+
+模拟规则（与 Dify 1.x 一致）：
+1. markdown 抽取器按 ^#+\s 把文件拆成多个 Document，标题行成为该 Document 首行，# 被剥离；
+2. 每个 Document 按空行切块，块之间不合并；
+3. 单块超过分段最大长度视为会被硬切。
+
+退出码 1 表示存在硬性违规（### 标题、空块、连续空行、超长块）。
+"""
+
+import re
+import sys
+
+TINY_CHARS = 60
+
+
+def split_documents(lines):
+    docs, header, body = [], None, []
+    in_fence = False
+    for line in lines:
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            body.append(line)
+            continue
+        if not in_fence and re.match(r"^#+\s", line):
+            if header is not None:
+                docs.append((header, "\n".join(body)))
+            header = re.sub(r"#", "", line).strip()
+            body = []
+        else:
+            body.append(line)
+    if header is not None:
+        docs.append((header, "\n".join(body)))
+    return docs
+
+
+def split_chunks(docs):
+    chunks = []
+    for header, body in docs:
+        content = (header + "\n" + body) if body.strip() else header
+        for part in content.split("\n\n"):
+            part = part.strip()
+            if part:
+                chunks.append(part)
+    return chunks
+
+
+def main():
+    if len(sys.argv) < 2:
+        print("用法: python check_doc.py <markdown 文件> [分段最大长度]")
+        return 2
+
+    path = sys.argv[1]
+    max_chars = int(sys.argv[2]) if len(sys.argv) > 2 else 2048
+    text = open(path, encoding="utf-8").read()
+    lines = text.split("\n")
+
+    docs = split_documents(lines)
+    chunks = split_chunks(docs)
+
+    # 每个标题下产生的块数：>1 说明该节内部还有空行没删
+    multi = []
+    for header, body in docs:
+        content = (header + "\n" + body) if body.strip() else header
+        parts = [p.strip() for p in content.split("\n\n") if p.strip()]
+        if len(parts) > 1:
+            multi.append((header, [len(p) for p in parts]))
+
+    # 每个标题内部的空行位置（该节最后一个空行通常是标题分隔，不计）
+    blanks_by_section = []
+    cur = None
+    in_fence = False
+    for idx, line in enumerate(lines, 1):
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if re.match(r"^#+\s", line):
+            cur = (re.sub(r"#", "", line).strip(), [])
+            blanks_by_section.append(cur)
+        elif cur is not None and line.strip() == "":
+            cur[1].append(idx)
+    inner_blank = [(h, b[:-1]) for h, b in blanks_by_section if len(b) >= 2]
+
+    h3 = [l for l in lines if l.startswith("### ")]
+    blanks = len(re.findall(r"\n{3,}", text))
+    tiny = [(len(c), c[:40].replace("\n", " ")) for c in chunks if len(c) < TINY_CHARS]
+    over = [(len(c), c[:40].replace("\n", " ")) for c in chunks if len(c) > max_chars]
+    tables = [c for c in chunks if c.lstrip().startswith("|")]
+    orphans = []
+    for i, c in enumerate(chunks):
+        if c.lstrip().startswith("|") and i > 0 and len(chunks[i - 1]) < 100:
+            orphans.append((len(chunks[i - 1]), chunks[i - 1][:40].replace("\n", " ")))
+
+    print(f"文件: {path}")
+    print(f"Document 数（标题数）: {len(docs)}")
+    print(f"块数: {len(chunks)}")
+    print(f"块数 - 标题数: {len(chunks) - len(docs)}（应为 0）")
+    print(f"一个标题下切出多块的标题数: {len(multi)}")
+    for header, sizes in multi:
+        print(f"  - {header[:40]}  块长 {sizes}")
+    print(f"标题内部的空行（会导致该节多切一块）: {sum(len(b) for _, b in inner_blank)} 处")
+    for header, b in inner_blank[:10]:
+        print(f"  - {header[:36]}  行 {b[:8]}")
+    print(f"最长块: {max(len(c) for c in chunks)} 字符")
+    print(f"表格块: {len(tables)}")
+    print(f"表格前的孤儿引导句（< 100 字符）: {len(orphans)}")
+    for size, head in orphans:
+        print(f"  - {size:>4} 字符  {head}")
+    print(f"三级标题 ###: {len(h3)}（故障分析类应改为加粗引导句；手册/方案类的模块标题可保留）")
+    print(f"连续空行（3 个及以上）: {blanks}")
+    print(f"小于 {TINY_CHARS} 字符的块: {len(tiny)}")
+    for size, head in tiny:
+        print(f"  - {size:>4} 字符  {head}")
+    print(f"超过 {max_chars} 字符的块: {len(over)}")
+    for size, head in over:
+        print(f"  - {size:>4} 字符  {head}")
+
+    problems = []
+    if multi:
+        problems.append(f"存在 {len(multi)} 个标题下切出多块：删掉该节内部的空行（表格会强制多块，改列表）")
+    if inner_blank:
+        problems.append(f"存在 {sum(len(b) for _, b in inner_blank)} 处标题内部空行：按上面行号删掉")
+    # ### 是否违规取决于文档类型：故障分析类应改成加粗引导句，手册/方案类的模块标题是合法的
+
+    if tiny:
+        problems.append(f"存在 {len(tiny)} 个小于 {TINY_CHARS} 字符的碎块：删空行或把标签并入内容")
+    if blanks:
+        problems.append("存在连续空行：收敛为一个空行")
+    if over:
+        problems.append(f"存在 {len(over)} 个超过 {max_chars} 字符的块：拆段或提高分段上限")
+    if orphans:
+        problems.append(
+            f"存在 {len(orphans)} 处表格前孤儿引导句：表格强制前有空行，引导句被切成独立碎块；"
+            "把引导句写实（带结论或取舍），或整章改成列表"
+        )
+
+    if problems:
+        print("\n需要处理：")
+        for p in problems:
+            print(f"- {p}")
+        return 1
+
+    print("\n排版检查通过。")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

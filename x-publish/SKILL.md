@@ -89,7 +89,7 @@ node <本skill>\scripts\x.mjs post --job <job.json> --submit
 
 1. 光标点到目标段落末尾，先按一次回车留位置
 2. 点工具栏 **Insert** → 菜单里点 **Media**（菜单项依次是 Media / GIF / Posts / Link preview / Divider）
-3. 此时页面会出现**第二个** file input，用 `DOM.querySelectorAll('input[type=file]')` 取**最后一个** nodeId
+3. 用 `DOM.querySelector('input[type=file]')` 取**第一个** nodeId（实测第一个才是媒体上传口，取最后一个会没反应）
 4. `DOM.setFileInputFiles` 塞图，等 6–8 秒
 5. **不需要 Apply**，图直接落在光标处（悬停出现 Edit 按钮）
 
@@ -99,3 +99,24 @@ node <本skill>\scripts\x.mjs post --job <job.json> --submit
 - 连续插多张时，Insert 菜单可能因上一次没关闭而展开失败（返回 no-media）。每插一张前按 Esc 关菜单，或刷新页面重新定位光标。
 
 判定成功：`document.querySelectorAll('[contenteditable=true] img').length` 增加，且截图上能看到图。
+
+## X 封面规范（2026-11-16 加，踩过两次）
+
+封面是整篇文章最显眼的一屏，**必须是设计图，不能直接拿 UI 截图顶上**。
+
+- 尺寸 1500×600（5:2）。左边大标题（≤14 字，给冲突）+ 一行副标题，右边放**截图局部**当证据，底部一行署名。
+- 只放一张截图当封面 = 不合格：裁切后只剩界面中间一块，还带着 Edit / × 悬浮按钮（真实翻车案例）。
+- 判断标准：缩到 200px 宽还能读出「这是什么、为什么点」。
+
+换封面（已有封面时，占位提示会消失，不要再找 `5:2 aspect ratio`）：
+
+1. 鼠标移到现有封面上 → 出现 **Edit** 按钮 → 点它
+2. 塞新图（`DOM.setFileInputFiles`，用第一个 file input）
+3. 「Edit media」裁切框里点右上角 **Apply**
+
+## 插图排版（2026-11-16 加）
+
+- **插图前不要预先按回车**。光标停在段末直接 Insert → Media，图片块自带间距；多按一次回车会在段落和图片之间留出一大块空白（本篇就留了，用户手动清掉的）。
+- 插图用的 file input 是**第一个**（`DOM.querySelector`），不是最后一个；取最后一个不会报错、只是没反应。
+- **验证必须截图**：`document.querySelectorAll('img')` 在 X 编辑器里几乎恒为 1，不代表没插进去。判据是滚动到目标段落截一张图，肉眼确认图在对应文字下面。
+- 一次插一张，插完等 10 秒以上再插下一张；中途按 Esc 会把正在上传的图撤掉。

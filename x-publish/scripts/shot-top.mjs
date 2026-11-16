@@ -1,0 +1,10 @@
+﻿import fs from 'node:fs';
+import { launch, Page, profileDir, sleep } from './lib/cdp.mjs';
+const URL='https://x.com/compose/articles/edit/2122285274046840833';
+await launch({port:9336,profile:profileDir('x'),startUrl:URL,proxy:process.env.X_PROXY});
+const p=await Page.attach(9336);
+await p.goto(URL); await sleep(10000);
+await p.eval('window.scrollTo(0,0)'); await sleep(1500);
+const shot=await p.screenshot('D:/AIInfra/publish-jobs/2026-11-15-feishu-delete/current-top.png');
+console.log(JSON.stringify({shot}));
+process.exit(0);

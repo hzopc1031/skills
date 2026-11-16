@@ -1,0 +1,10 @@
+﻿import fs from 'node:fs';
+import { launch, Page, profileDir, sleep } from './lib/cdp.mjs';
+await launch({port:9336,profile:profileDir('x'),startUrl:'https://x.com/compose/post/drafts',proxy:process.env.X_PROXY});
+const p=await Page.attach(9336);
+await p.goto('https://x.com/compose/post/drafts');
+await sleep(6000);
+const txt=await p.eval("(()=>{const vis=e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;};return [...document.querySelectorAll('div,span')].filter(vis).map(e=>(e.innerText||'').trim()).filter(t=>t&&t.length>8).slice(0,12);})()");
+const shot=await p.screenshot('D:/AIInfra/publish-jobs/2026-11-15-feishu-delete/x-drafts2.png');
+fs.writeFileSync('D:/AIInfra/publish-jobs/2026-11-15-feishu-delete/x-drafts2.json',JSON.stringify({txt,shot},null,2),'utf8');
+process.exit(0);

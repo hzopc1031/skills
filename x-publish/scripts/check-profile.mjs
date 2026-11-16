@@ -1,0 +1,12 @@
+﻿import fs from 'node:fs';
+import path from 'node:path';
+import { launch, Page, profileDir, artifactsDir, sleep } from './lib/cdp.mjs';
+const PORT=9336, PROFILE=profileDir('x');
+await launch({port:PORT,profile:PROFILE,startUrl:'https://x.com/PeanutPair',proxy:process.env.X_PROXY||'http://127.0.0.1:12334'});
+const p=await Page.attach(PORT);
+await p.goto('https://x.com/PeanutPair');
+await sleep(6000);
+const texts=await p.eval("(()=>[...document.querySelectorAll('[data-testid=\"tweetText\"]')].map(e=>e.innerText.replace(/\\s+/g,' ').slice(0,24)).slice(0,8))()");
+const shot=await p.screenshot(path.join(artifactsDir('x'),'profile-check.png'));
+console.log(JSON.stringify({texts,shot}));
+process.exit(0);

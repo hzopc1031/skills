@@ -1,0 +1,12 @@
+﻿import fs from 'node:fs';
+import { launch, Page, profileDir, sleep } from './lib/cdp.mjs';
+const URL='https://x.com/compose/articles/edit/2122285274046840833';
+await launch({port:9336,profile:profileDir('x'),startUrl:URL,proxy:process.env.X_PROXY});
+const p=await Page.attach(9336);
+await p.goto(URL);
+await sleep(15000);
+const info=await p.eval("(()=>({imgs:document.querySelectorAll('[contenteditable=true] img').length,figures:document.querySelectorAll('[contenteditable=true] figure').length,body:document.body.innerText.length,saved:/Last saved/.test(document.body.innerText)}))()");
+const shot=await p.screenshot('D:/AIInfra/publish-jobs/2026-11-15-feishu-delete/inline3.png');
+fs.writeFileSync('D:/AIInfra/publish-jobs/2026-11-15-feishu-delete/inline3.json',JSON.stringify({info,shot},null,2),'utf8');
+console.log(JSON.stringify(info));
+process.exit(0);

@@ -1,0 +1,11 @@
+﻿import fs from 'node:fs';
+import path from 'node:path';
+import { launch, Page, profileDir, artifactsDir, sleep } from './lib/cdp.mjs';
+const PORT=9336, PROFILE=profileDir('x');
+await launch({port:PORT,profile:PROFILE,startUrl:'https://x.com/i/flow/login'});
+const p=await Page.attach(PORT);
+await p.goto('https://x.com/i/flow/login');
+await sleep(4000);
+const s=await p.screenshot(path.join(artifactsDir('x'),'login-window.png'));
+console.log(JSON.stringify({screenshot:s,url:await p.eval('location.href')}));
+process.exit(0);

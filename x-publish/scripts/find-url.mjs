@@ -1,0 +1,10 @@
+﻿import fs from 'node:fs';
+import { launch, Page, profileDir, sleep } from './lib/cdp.mjs';
+const PORT=9336;
+await launch({port:PORT,profile:profileDir('x'),startUrl:'https://x.com/PeanutPair',proxy:process.env.X_PROXY});
+const p=await Page.attach(PORT);
+await p.goto('https://x.com/PeanutPair');
+await sleep(6000);
+const url=await p.eval(`(()=>{const pre='今天 GitHub 涨最快的五个仓库，第一名';for(const a of document.querySelectorAll('article')){const t=a.querySelector('[data-testid="tweetText"]');if(t&&t.innerText.startsWith(pre)){const l=a.querySelector('a[href*="/status/"]');if(l)return l.href;}}return null;})()`);
+console.log(JSON.stringify({url}));
+process.exit(0);

@@ -1,0 +1,21 @@
+{
+    "default":  null,
+    "accounts":  {
+                     "ai":  {
+                                "label":  "AI/科技号",
+                                "dataDir":  "xhs",
+                                "port":  9333,
+                                "expectedNickname":  "TwoPeanuts",
+                                "expectedRedId":  "7247802890",
+                                "proxy":  "direct"
+                            },
+                     "house":  {
+                                   "label":  "房产号",
+                                   "dataDir":  "xhs-house",
+                                   "port":  9334,
+                                   "expectedNickname":  "杭房有趣说",
+                                   "expectedRedId":  "94587684568",
+                                   "proxy":  "direct"
+                               }
+                 }
+}

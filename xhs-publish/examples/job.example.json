@@ -1,0 +1,14 @@
+{
+  "account": "ai",
+  "title": "GitHub热榜TOP10（11.07）",
+  "content": "今天最火的10个开源项目\n\n1 zed：高性能多人协作编辑器 +306\n2 auto-ontology：NVIDIA企业本体/语义层 +2015\n3 rails：经典MVC Web框架 +142\n\n正文全文会同时进两处：长文卡片（图片形态）+ 发布页正文框（文本形态）。",
+  "caption": "",
+  "linkPolicy": "https",
+  "topics": [
+    "GitHub",
+    "开源",
+    "程序员"
+  ],
+  "images": [],
+  "submit": false
+}

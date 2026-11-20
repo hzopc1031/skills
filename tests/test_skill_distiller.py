@@ -11,11 +11,11 @@ from unittest.mock import patch
 
 sys.dont_write_bytecode = True
 PROJECT = Path(__file__).resolve().parents[1]
-TEST_ROOT = (PROJECT / ".test-runs" / "content-to-skill").resolve()
+TEST_ROOT = (PROJECT / ".test-runs" / "skill-distiller").resolve()
 assert TEST_ROOT.is_relative_to(PROJECT) and TEST_ROOT != PROJECT
 TEST_ROOT.mkdir(parents=True, exist_ok=True)
-MODULE = PROJECT / "content-to-skill" / "scripts" / "content_skill.py"
-spec = importlib.util.spec_from_file_location("content_skill", MODULE)
+MODULE = PROJECT / "skill-distiller" / "scripts" / "skill_distiller.py"
+spec = importlib.util.spec_from_file_location("skill_distiller", MODULE)
 c = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(c)
 
@@ -247,7 +247,7 @@ class ContentTests(unittest.TestCase):
         real_write = c.write_json
 
         def fail_receipt(path, value):
-            if path == target / ".content-to-skill-install.json":
+            if path == target / ".skill-distiller-install.json":
                 raise OSError("simulated receipt failure")
             return real_write(path, value)
 
@@ -255,6 +255,21 @@ class ContentTests(unittest.TestCase):
             with self.assertRaises(OSError):
                 c.install(package, self.work, root, replace=True)
         self.assertEqual((target / "SKILL.md").read_bytes(), old)
+
+    def test_legacy_evidence_and_install_receipt_remain_usable(self):
+        package = self.ready()
+        evidence = c.read_json(package / "evidence.json")
+        evidence["managed_by"] = "content-to-skill"
+        c.write_json(package / "evidence.json", evidence)
+        self.accept(package)
+        root = self.base / "skills"
+        target = Path(c.install(package, self.work, root)["installed"])
+        receipt = c.read_json(target / ".skill-distiller-install.json")
+        (target / ".skill-distiller-install.json").unlink()
+        receipt["managed_by"] = "content-to-skill"
+        c.write_json(target / ".content-to-skill-install.json", receipt)
+        c.install(package, self.work, root, replace=True)
+        self.assertEqual(c.read_json(target / ".skill-distiller-install.json")["managed_by"], "skill-distiller")
 
     def test_keyword_search_returns_candidates_only(self):
         package = self.ready()

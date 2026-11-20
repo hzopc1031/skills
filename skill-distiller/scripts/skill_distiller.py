@@ -1,4 +1,4 @@
-"""Content-to-skill file helpers. Standard library only; synthesis belongs to the agent."""
+"""Skill distillation file helpers. Standard library only; synthesis belongs to the agent."""
 from __future__ import annotations
 
 import argparse
@@ -19,7 +19,8 @@ from urllib.parse import parse_qsl, quote, unquote, urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 sys.dont_write_bytecode = True
-VERSION = "1.0.1"
+VERSION = "1.1.0"
+MANAGED_OWNERS = {"skill-distiller", "content-to-skill"}
 DEFAULT_ROOT = Path.home() / (".dsh" if sys.platform == "win32" else ".agents") / "skills"
 MAX_BYTES = 8 * 1024 * 1024
 NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
@@ -30,7 +31,7 @@ RISK = re.compile(
     r"|忽略(?:所有|之前|此前|以上|先前).{0,8}(?:规则|指令)"
     r"|(?:curl|wget|Invoke-WebRequest)\b[^\n]*\|\s*(?:bash|sh|iex|powershell)\b"
     r"|[\u202a-\u202e\u2066-\u2069]", re.I)
-EXCLUDED = {"acceptance.json", ".content-to-skill-install.json", "validation.json"}
+EXCLUDED = {"acceptance.json", ".skill-distiller-install.json", ".content-to-skill-install.json", "validation.json"}
 
 
 def now() -> str:
@@ -140,7 +141,7 @@ def fetch_url(url: str) -> tuple[bytes, str, str, str | None]:
     if x_url(url):
         raise ValueError("needs_content: import the post/thread text with --origin; no account collection is performed")
     validate_url(url)
-    request = Request(url, headers={"User-Agent": "content-to-skill/" + VERSION,
+    request = Request(url, headers={"User-Agent": "skill-distiller/" + VERSION,
                                    "Accept": "text/html,text/plain,text/markdown"})
     try:
         with build_opener(CheckedRedirect()).open(request, timeout=20) as response:
@@ -464,7 +465,7 @@ def draft(args) -> dict:
         origin = rec["origin"] if rec["origin"].startswith(("https://", "http://")) else "本地资料，原件保留于转换工作目录"
         links.append(f"\n- {rec['id']}：{rec['title']}；{origin}；作者：{rec['author'] or '未知'}；日期：{rec['published'] or '未知'}。\n")
     (target / "references" / "sources.md").write_text("".join(links), encoding="utf-8", newline="")
-    write_json(target / "evidence.json", {"schema_version": 1, "managed_by": "content-to-skill", "mode": args.mode,
+    write_json(target / "evidence.json", {"schema_version": 1, "managed_by": "skill-distiller", "mode": args.mode,
                                          "sources": sources, "claims": [], "dependencies": [],
                                          "known_gaps": sorted({gap for rec in records for gap in rec["gaps"]})})
     return {"candidate": str(target), "status": "scaffold_needs_agent_synthesis"}
@@ -512,7 +513,7 @@ def validate(candidate: Path, work: Path | None = None, structure_only: bool = F
             evidence = read_json(candidate / "evidence.json")
             if not isinstance(evidence, dict):
                 raise ValueError("evidence must be a JSON object")
-            if evidence.get("schema_version") != 1 or evidence.get("managed_by") != "content-to-skill":
+            if evidence.get("schema_version") != 1 or evidence.get("managed_by") not in MANAGED_OWNERS:
                 raise ValueError("invalid evidence schema or owner")
             if evidence.get("mode") not in {"workflow", "tool", "reference"}:
                 raise ValueError("invalid skill mode")
@@ -608,8 +609,10 @@ def install(candidate: Path, work: Path, root: Path, replace: bool = False) -> d
         raise ValueError("refusing a linked destination")
     backup = None
     if target.exists():
-        receipt = target / ".content-to-skill-install.json"
-        if not replace or not receipt.is_file() or read_json(receipt).get("managed_by") != "content-to-skill":
+        receipt = target / ".skill-distiller-install.json"
+        if not receipt.is_file():
+            receipt = target / ".content-to-skill-install.json"
+        if not replace or not receipt.is_file() or read_json(receipt).get("managed_by") not in MANAGED_OWNERS:
             raise ValueError("destination exists; only managed skills can be updated with --replace")
         backup = work / "backups" / candidate.name / (datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:8])
         old_hash = fingerprint(target, False)
@@ -617,7 +620,7 @@ def install(candidate: Path, work: Path, root: Path, replace: bool = False) -> d
         shutil.copytree(target, backup)
         if fingerprint(backup, False) != old_hash:
             raise ValueError("backup read-back mismatch; destination was not changed")
-    staging_root = root / ".content-to-skill-staging"
+    staging_root = root / ".skill-distiller-staging"
     if linked(staging_root):
         raise ValueError("refusing a linked staging directory")
     stage = staging_root / uuid.uuid4().hex
@@ -635,9 +638,9 @@ def install(candidate: Path, work: Path, root: Path, replace: bool = False) -> d
         new_moved = True
         if fingerprint(target) != expected:
             raise ValueError("installed content read-back mismatch")
-        receipt = {"schema_version": 1, "managed_by": "content-to-skill", "installed_at": now(),
+        receipt = {"schema_version": 1, "managed_by": "skill-distiller", "installed_at": now(),
                    "package_sha256": expected, "backup": str(backup) if backup else None}
-        write_json(target / ".content-to-skill-install.json", receipt)
+        write_json(target / ".skill-distiller-install.json", receipt)
         committed = True
     except Exception:
         if new_moved:

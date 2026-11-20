@@ -1,0 +1,4 @@
+interface:
+  display_name: "技能提炼器"
+  short_description: "把教程、帖子和指南提炼为有来源、可验证、可持续更新的本地技能"
+  default_prompt: "使用 $skill-distiller 把这份材料提炼为可复用的本地 skill，并核验来源和实际效果。"

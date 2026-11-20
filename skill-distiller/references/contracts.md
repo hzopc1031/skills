@@ -1,11 +1,13 @@
 # 候选稿的证据契约
 
+1.1.0 更名为 skill-distiller；读取时兼容旧 content-to-skill 的管理标记和安装收据，新记录使用新名称。旧资料快照无需重新导入。
+
 `draft` 生成候选目录及 `evidence.json`。后者是本工具的来源记录，不属于 Agent Skills 必填字段。
 
 ```json
 {
   "schema_version": 1,
-  "managed_by": "content-to-skill",
+  "managed_by": "skill-distiller",
   "mode": "workflow",
   "sources": ["来源ID"],
   "claims": [
@@ -44,6 +46,6 @@
 }
 ```
 
-工具命令：`python "S/scripts/content_skill.py" fingerprint "候选目录"`。哈希覆盖候选运行文件与 evidence.json，不含 acceptance.json、checks/ 或安装收据；修改技能内容后旧验收将失效。checks/ 内保留样例、实际输出或核对记录，不放模型猜测的运行结果。此哈希避免旧记录被误用，不能证明测试者说的是真的。
+工具命令：`python "S/scripts/skill_distiller.py" fingerprint "候选目录"`。哈希覆盖候选运行文件与 evidence.json，不含 acceptance.json、checks/ 或安装收据；修改技能内容后旧验收将失效。checks/ 内保留样例、实际输出或核对记录，不放模型猜测的运行结果。此哈希避免旧记录被误用，不能证明测试者说的是真的。
 
 `boundary` 用例按需增加。所有记录均须包含实际观察和存在的证据文件；任一 fail 阻止入库。工作目录原文不会复制进正式技能，选用的来源链接与精简来源记录会保留。

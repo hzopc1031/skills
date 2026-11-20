@@ -3,13 +3,19 @@
 把可复用的工作方法整理成 Agent Skills，让 AI 按明确边界处理任务，并说明做了什么、哪些还需要确认。
 
 - **少重复交代规则**：每个 Skill 独立包含入口说明、参考资料和必要脚本。
+- **把教程沉淀成技能**：从文章、帖子正文和指南中提炼可复用方法，保留来源，验证后再入库或更新已有技能。
 - **整理知识库文档时保留原意**：先判断文档类型和分段配置，不以“删空行、少分块”为唯一目标。
 - **不同内容分别处理**：手册保持原顺序，问题分析按证据重组，混合文档按章节分流。
 - **结果可以复核**：代码、命令、数字等默认保护；另存正文，给出修改摘要和待确认项，检查结果按严重程度区分。
 
 ## 先看一个结果
 
-当前收录：[知识库文档整理](<knowledge-base-doc-authoring/SKILL.md>)（`knowledge-base-doc-authoring`）。
+| Skill | 适用任务 |
+|---|---|
+| [内容转 Skill](content-to-skill/SKILL.md) | 教程、文章、帖子正文、指南转本地技能；支持多来源合并、来源追溯和已有技能更新 |
+| [知识库文档整理](knowledge-base-doc-authoring/SKILL.md) | 按类型和分段配置整理知识库文档，保护事实、代码和顺序 |
+
+账号发布相关技能另见 [公众号草稿](wechat-publish/SKILL.md)、[小红书](xhs-publish/SKILL.md) 和 [X](x-publish/SKILL.md)，使用前阅读各自的授权边界。
 
 示例请求：
 
@@ -56,6 +62,31 @@
    没有 Python 仍可按规范整理，但不能执行自检脚本；未确认实际分段配置时，不要把脚本默认值当成平台设置。
 
 ## 按任务使用
+
+### 把文章、教程或帖子转为 Skill
+
+把 `content-to-skill/` 复制到目标工具的技能目录后，给 agent 一份链接、正文或本地文件：
+
+> 使用 content-to-skill，把这篇教程变成本地 skill。保留来源，检查已有技能是否重复，并用一份新输入验证效果。
+
+当前 agent 负责理解与编写；辅助工具仅使用 Python 3.10+ 标准库，负责公开网页或 Markdown/TXT/HTML 导入、中文分段、来源快照、文件检查和入库，不要求另配模型 API。先判断材料适合生成流程、工具调用还是参考技能；缺少方法的材料可直接跳过。
+
+X 单帖与线程需要提供完整正文或由已有获准工具取得正文，不扩为账号采集。PDF、Word、视频解析尚未内置。生成时先核对来源、依赖和实际效果；文件校验通过不能证明语义或行为正确。已有第三方原版保留，明确要求更新本机原创时先备份比较。
+
+可用自写的[中文教程](examples/content-to-skill/guide.md)及[补充规则](examples/content-to-skill/follow-up.md)试用。命令行先导入材料，取得来源 ID 后再由 agent 提炼；单独运行 `draft` 只得到脚手架：
+
+```powershell
+python content-to-skill/scripts/content_skill.py ingest examples/content-to-skill/guide.md examples/content-to-skill/follow-up.md --work "转换目录"
+python content-to-skill/scripts/content_skill.py catalog --work "转换目录"
+```
+
+详细参数见[辅助工具说明](content-to-skill/references/commands.md)。安装目标默认 Windows 当前用户的 `~/.dsh/skills`，其他系统的 `~/.agents/skills`；有既有统一目录时优先沿用，通过 `--root` 指定。不要覆盖同名技能。
+
+运行这项技能的 31 项标准库回归测试：
+
+```powershell
+python -B -m unittest discover -s tests -p test_content_to_skill.py -v
+```
 
 ### 整理通用、问题分析或混合文档
 
